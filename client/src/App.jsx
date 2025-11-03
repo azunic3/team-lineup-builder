@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "./App.scss";
 
 export default function App() {
   const [sports, setSports] = useState([]);
@@ -157,8 +158,7 @@ export default function App() {
   };
 
   return (
-    <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
-      <div className="card shadow p-4" style={{ width: "420px" }}>
+      <div className="card shadow p-4">
         <h3 className="text-center mb-3 fw-bold">Team Lineup Builder</h3>
         <p className="text-center text-muted">
           Create and submit your custom sports lineup.
@@ -298,6 +298,5 @@ export default function App() {
           )}
         </div>
       </div>
-    </div>
   );
 }
