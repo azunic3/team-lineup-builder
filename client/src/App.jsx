@@ -16,7 +16,12 @@ export default function App() {
 
   const bannedLastNames = ["Smith", "Johnson", "Brown"];
 
-  //debounced + validation (nisam importovala na kraju)
+  //load Top Players at initial mount
+  useEffect(() => {
+    fetchTopPlayers();
+  }, []);
+
+  //debounced validation
   useEffect(() => {
     if (playerName.trim() === "") {
       setIsValid(true);
@@ -37,7 +42,7 @@ export default function App() {
     );
   }, [playerName]);
 
-  // load sports from DB
+  //load sports from DB
   useEffect(() => {
     fetch("http://localhost:3000/api/sports")
       .then((res) => res.json())
@@ -45,7 +50,7 @@ export default function App() {
       .catch((err) => console.error("Error loading sports:", err));
   }, []);
 
-  //load available players by sport
+  //load players by sport
   useEffect(() => {
     if (selectedSport) {
       fetch(`http://localhost:3000/api/players/${selectedSport}`)
@@ -57,7 +62,7 @@ export default function App() {
     }
   }, [selectedSport]);
 
-  //fetch top players
+  //fetch Top Players
   const fetchTopPlayers = async () => {
     try {
       const res = await fetch("http://localhost:3000/api/top-players");
@@ -68,13 +73,16 @@ export default function App() {
     }
   };
 
-  // add Player (checks banned last name, duplicate, etc.)
+  // add new player (validation + banned check)
   const handleAddPlayer = async () => {
     if (!playerName.trim() || !isValid || !selectedSport) return;
 
     const lastName = playerName.trim().split(" ").slice(-1)[0];
     if (bannedLastNames.includes(lastName)) {
-      setErrorMsg("This player has a banned last name and cannot be added to the lineup.");
+      setErrorMsg(
+        "This player has a banned last name and cannot be added to the lineup."
+      );
+      setTimeout(() => setErrorMsg(""), 4000);
       return;
     }
 
@@ -131,7 +139,6 @@ export default function App() {
 
       const data = await res.json();
 
-      // Ako backend vrati grešku (npr. banned last names)
       if (!res.ok) {
         setToastMsg(data.error || "Error submitting lineup.");
         setIsSubmitting(false);
@@ -139,12 +146,10 @@ export default function App() {
         return;
       }
 
-      setToastMsg("Lineup submitted successfully!");
       setLineup([]);
       await fetchTopPlayers();
     } catch (err) {
       console.error("Error submitting lineup:", err);
-      setToastMsg(" Failed to submit lineup.");
     } finally {
       setIsSubmitting(false);
       setTimeout(() => setToastMsg(""), 4000);
@@ -159,7 +164,6 @@ export default function App() {
           Create and submit your custom sports lineup.
         </p>
 
-        {/* toast Message */}
         {toastMsg && (
           <div className="alert alert-info py-2 text-center" role="alert">
             {toastMsg}
@@ -202,11 +206,10 @@ export default function App() {
               +
             </button>
           </div>
-
           {errorMsg && <small className="text-danger">{errorMsg}</small>}
         </div>
 
-        {/* Available Players dropdown*/}
+        {/* Available Players */}
         <div className="mb-3">
           <label className="form-label fw-semibold">Available Players</label>
           <select className="form-select">
@@ -256,13 +259,18 @@ export default function App() {
         </div>
 
         {/* Top Players */}
-        {topPlayers.length > 0 && (
-          <div className="mt-4">
-            <h5 className="fw-semibold text-primary">
-              <i className="bi bi-bar-chart"></i> Top Players
-            </h5>
-            <table className="table table-sm table-striped text-center">
-              <thead>
+        <div className="mt-4">
+          <h5 className="fw-semibold text-primary mb-2">
+            <i className="bi bi-bar-chart-fill me-2"></i> Top Players
+          </h5>
+
+          {topPlayers.length === 0 ? (
+            <p className="text-muted text-center mb-0">
+              No top players yet. Submit a lineup first!
+            </p>
+          ) : (
+            <table className="table table-sm table-striped text-center align-middle">
+              <thead className="table-light">
                 <tr>
                   <th>Rank</th>
                   <th>Player</th>
@@ -287,8 +295,8 @@ export default function App() {
                 })}
               </tbody>
             </table>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

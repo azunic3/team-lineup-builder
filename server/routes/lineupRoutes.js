@@ -129,11 +129,13 @@ router.get("/top-players", async (req, res) => {
   const pool = req.pool;
   try {
     const result = await pool.query(`
-        SELECT p.full_name, ps.count
-        FROM player_stats ps
-        JOIN players p ON ps.player_id = p.id
-        ORDER BY ps.count DESC, p.full_name ASC
-        LIMIT 10;
+    SELECT p.full_name, ps.count
+    FROM player_stats ps
+    JOIN players p ON ps.player_id = p.id
+    WHERE ps.count > 0
+    ORDER BY ps.count DESC, p.full_name ASC
+    LIMIT 10;
+    
       `);
     res.json(result.rows);
   } catch (err) {
