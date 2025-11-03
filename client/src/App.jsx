@@ -10,7 +10,7 @@ export default function App() {
   const [lineup, setLineup] = useState([]);
   const [errorMsg, setErrorMsg] = useState("");
   const [typingTimeout, setTypingTimeout] = useState(null);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   //debounce nakon 300ms greska za nevalidno ime
   useEffect(() => {
@@ -25,7 +25,9 @@ export default function App() {
         const regex = /^[A-Za-z]+ [A-Za-z]+$/;
         const valid = regex.test(playerName.trim());
         setIsValid(valid);
-        setErrorMsg(valid ? "" : "Please enter a valid full name (first and last).");
+        setErrorMsg(
+          valid ? "" : "Please enter a valid full name (first and last)."
+        );
       }, 300)
     );
   }, [playerName]);
@@ -55,8 +57,12 @@ export default function App() {
     if (!playerName.trim() || !isValid || !selectedSport) return;
 
     const exists =
-      lineup.some((p) => p.full_name.toLowerCase() === playerName.toLowerCase()) ||
-      availablePlayers.some((p) => p.full_name.toLowerCase() === playerName.toLowerCase());
+      lineup.some(
+        (p) => p.full_name.toLowerCase() === playerName.toLowerCase()
+      ) ||
+      availablePlayers.some(
+        (p) => p.full_name.toLowerCase() === playerName.toLowerCase()
+      );
     if (exists) return;
 
     try {
@@ -69,10 +75,14 @@ export default function App() {
 
       if (newPlayer) {
         setLineup((prev) =>
-          [...prev, newPlayer].sort((a, b) => a.full_name.localeCompare(b.full_name))
+          [...prev, newPlayer].sort((a, b) =>
+            a.full_name.localeCompare(b.full_name)
+          )
         );
         setAvailablePlayers((prev) =>
-          [...prev, newPlayer].sort((a, b) => a.full_name.localeCompare(b.full_name))
+          [...prev, newPlayer].sort((a, b) =>
+            a.full_name.localeCompare(b.full_name)
+          )
         );
       }
       setPlayerName("");
@@ -86,6 +96,8 @@ export default function App() {
     if (lineup.length < 3) return;
 
     try {
+      setIsSubmitting(true);
+
       await fetch("http://localhost:3000/api/lineup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -94,10 +106,13 @@ export default function App() {
           players: lineup.map((p) => p.full_name),
         }),
       });
+
       alert("✅ Lineup submitted successfully!");
       setLineup([]);
     } catch (err) {
       console.error("Error submitting lineup:", err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -143,9 +158,7 @@ export default function App() {
               +
             </button>
           </div>
-          {!isValid && (
-            <small className="text-danger">{errorMsg}</small>
-          )}
+          {!isValid && <small className="text-danger">{errorMsg}</small>}
         </div>
 
         <div className="mb-3">
@@ -168,16 +181,34 @@ export default function App() {
           </div>
         </div>
 
-        <button
-          className="btn btn-secondary w-100"
-          disabled={lineup.length < 3}
-          onClick={handleSubmit}
-        >
-          SUBMIT LINEUP
-        </button>
-        <small className="text-center mt-2 text-muted d-block">
-          You need at least 3 players to submit a lineup.
-        </small>
+        {/* Submit Button with tooltip and loader */}
+        <div className="position-relative">
+          <button
+            className="btn btn-secondary w-100 d-flex justify-content-center align-items-center"
+            disabled={lineup.length < 3 || isSubmitting}
+            onClick={handleSubmit}
+            data-bs-toggle={lineup.length < 3 ? "tooltip" : ""}
+            data-bs-placement="top"
+            title={
+              lineup.length < 3
+                ? "You need at least 3 players to submit a lineup."
+                : ""
+            }
+          >
+            {isSubmitting ? (
+              <>
+                <span
+                  className="spinner-border spinner-border-sm me-2"
+                  role="status"
+                  aria-hidden="true"
+                ></span>
+                Submitting...
+              </>
+            ) : (
+              "SUBMIT LINEUP"
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

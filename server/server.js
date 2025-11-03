@@ -18,19 +18,17 @@ const pool = new Pool({
   database: process.env.PGDATABASE || "lineups_db",
 });
 
-// provjera konekcije
+// provjera konekcije na bazu
 pool.connect()
-  .then(() => console.log("✅ Connected to PostgreSQL"))
+  .then(() => console.log("Connected to PostgreSQL"))
   .catch(err => console.error("❌ DB connection error:", err.message));
 
-// dodaj pool globalno (da lineupRoutes može da ga koristi)
 app.locals.pool = pool;
 
-// 🔹 Rute
 app.use("/api", (req, res, next) => {
   req.pool = pool;
   next();
 }, lineupRoutes);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ API running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
