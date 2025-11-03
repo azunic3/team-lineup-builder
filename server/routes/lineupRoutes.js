@@ -75,12 +75,10 @@ router.post("/lineup", async (req, res) => {
     });
 
     if (hasBanned) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Some players have banned last names and cannot be added to the lineup.",
-        });
+      return res.status(400).json({
+        error:
+          "Some players have banned last names and cannot be added to the lineup.",
+      });
     }
 
     // napravi lineup
@@ -103,6 +101,15 @@ router.post("/lineup", async (req, res) => {
         );
 
         // povećaj broj uključivanja
+        // osiguraj da red postoji u player_stats
+        await pool.query(
+          `INSERT INTO player_stats (player_id, count)
+     VALUES ($1, 0)
+     ON CONFLICT (player_id) DO NOTHING;`,
+          [playerId]
+        );
+
+        // povećaj broj uključivanja
         await pool.query(
           "UPDATE player_stats SET count = count + 1 WHERE player_id = $1;",
           [playerId]
@@ -122,12 +129,12 @@ router.get("/top-players", async (req, res) => {
   const pool = req.pool;
   try {
     const result = await pool.query(`
-      SELECT p.full_name, ps.count
-      FROM player_stats ps
-      JOIN players p ON ps.player_id = p.id
-      ORDER BY ps.count DESC, p.full_name ASC
-      LIMIT 10;
-    `);
+        SELECT p.full_name, ps.count
+        FROM player_stats ps
+        JOIN players p ON ps.player_id = p.id
+        ORDER BY ps.count DESC, p.full_name ASC
+        LIMIT 10;
+      `);
     res.json(result.rows);
   } catch (err) {
     console.error("Error fetching top players:", err.message);

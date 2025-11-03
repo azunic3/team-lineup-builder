@@ -16,7 +16,7 @@ export default function App() {
 
   const bannedLastNames = ["Smith", "Johnson", "Brown"];
 
-  //debounced validation
+  //debounced + validation (nisam importovala na kraju)
   useEffect(() => {
     if (playerName.trim() === "") {
       setIsValid(true);

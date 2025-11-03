@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔹 PostgreSQL pool
+// postgreSQL pool
 const pool = new Pool({
   host: process.env.PGHOST || "localhost",
   port: process.env.PGPORT || 5433,
@@ -19,16 +19,21 @@ const pool = new Pool({
 });
 
 // provjera konekcije na bazu
-pool.connect()
+pool
+  .connect()
   .then(() => console.log("Connected to PostgreSQL"))
-  .catch(err => console.error("❌ DB connection error:", err.message));
+  .catch((err) => console.error("DB connection error:", err.message));
 
 app.locals.pool = pool;
 
-app.use("/api", (req, res, next) => {
-  req.pool = pool;
-  next();
-}, lineupRoutes);
+app.use(
+  "/api",
+  (req, res, next) => {
+    req.pool = pool;
+    next();
+  },
+  lineupRoutes
+);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
