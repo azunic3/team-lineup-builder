@@ -10,6 +10,8 @@ cd team-lineup-builder
 			                   npm install
        			             cd ../server
 			                   npm install
+5. create DB named lineups_db in postgreSQL (look for instructions in Database_instructions.pdf)
+6. run the SQL script to import all tables and sample data: psql -U postgres -d lineups_db -f database/lineups_db_dump.sql
 5.run both at the same time using npm run dev
-6. open http://localhost:5173 
-7. backend is running on port 3000
+7. open http://localhost:5173 
+8. backend is running on port 3000
