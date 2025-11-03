@@ -1,0 +1,1 @@
+export const bannedLastNames = ["Smith", "Johnson", "Brown"];
