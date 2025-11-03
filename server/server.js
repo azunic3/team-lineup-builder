@@ -1,54 +1,36 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const pool = require('./db');
-
+const { Pool } = require("pg");
+const lineupRoutes = require("./routes/lineupRoutes");
 
 const app = express();
 
-
-async function ensureSchema() {
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS players (
-        id SERIAL PRIMARY KEY,
-        full_name TEXT UNIQUE NOT NULL
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS lineups (
-        id SERIAL PRIMARY KEY,
-        sport TEXT NOT NULL
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS lineup_players (
-        lineup_id INT REFERENCES lineups(id) ON DELETE CASCADE,
-        player_id INT REFERENCES players(id) ON DELETE CASCADE,
-        PRIMARY KEY(lineup_id, player_id)
-      );
-    `);
-
-    console.log("Database tables checked/created successfully.");
-  } catch (err) {
-    console.error(" Error creating tables:", err.message);
-  }
-}
-
-const corsOptions = {
-  origin: ["http://localhost:5173"], 
-};
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json());
 
-app.get("/api", (req, res) => {
-  res.json({ test: ["1", "2", "3"] });
+// 🔹 PostgreSQL pool
+const pool = new Pool({
+  host: process.env.PGHOST || "localhost",
+  port: process.env.PGPORT || 5433,
+  user: process.env.PGUSER || "postgres",
+  password: process.env.PGPASSWORD || "Grdonj24",
+  database: process.env.PGDATABASE || "lineups_db",
 });
 
-(async () => {
-  await ensureSchema();
-  const port = Number(process.env.PORT || 3000);
-  app.listen(port, () => console.log(`API listening on http://localhost:${port}`));
-})();
+// provjera konekcije
+pool.connect()
+  .then(() => console.log("✅ Connected to PostgreSQL"))
+  .catch(err => console.error("❌ DB connection error:", err.message));
+
+// dodaj pool globalno (da lineupRoutes može da ga koristi)
+app.locals.pool = pool;
+
+// 🔹 Rute
+app.use("/api", (req, res, next) => {
+  req.pool = pool;
+  next();
+}, lineupRoutes);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`✅ API running on http://localhost:${PORT}`));
