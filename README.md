@@ -1,4 +1,6 @@
 # team-lineup-building
+A simple app built for interview task. 
+Instructions to run the app on Your machine:
 
 1. clone the repository: git clone https://github.com/azunic3/team_lineup_builder.git 
 cd team-lineup-builder 
