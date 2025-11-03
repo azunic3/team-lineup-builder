@@ -1,1 +1,1 @@
-export const bannedLastNames = ["Smith", "Johnson", "Brown"];
+module.exports = ["Smith", "Johnson", "Brown"];

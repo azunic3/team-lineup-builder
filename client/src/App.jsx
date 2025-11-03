@@ -11,11 +11,16 @@ export default function App() {
   const [errorMsg, setErrorMsg] = useState("");
   const [typingTimeout, setTypingTimeout] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [topPlayers, setTopPlayers] = useState([]);
+  const [toastMsg, setToastMsg] = useState("");
 
-  //debounce nakon 300ms greska za nevalidno ime
+  const bannedLastNames = ["Smith", "Johnson", "Brown"];
+
+  //debounced validation
   useEffect(() => {
     if (playerName.trim() === "") {
       setIsValid(true);
+      setErrorMsg("");
       return;
     }
 
@@ -32,7 +37,7 @@ export default function App() {
     );
   }, [playerName]);
 
-  // load sports (baseball, basketball i football u bazi imam)
+  // load sports from DB
   useEffect(() => {
     fetch("http://localhost:3000/api/sports")
       .then((res) => res.json())
@@ -40,7 +45,7 @@ export default function App() {
       .catch((err) => console.error("Error loading sports:", err));
   }, []);
 
-  // load players iz baze po sportu
+  //load available players by sport
   useEffect(() => {
     if (selectedSport) {
       fetch(`http://localhost:3000/api/players/${selectedSport}`)
@@ -52,9 +57,26 @@ export default function App() {
     }
   }, [selectedSport]);
 
-  // dodavanje novog igraca
+  //fetch top players
+  const fetchTopPlayers = async () => {
+    try {
+      const res = await fetch("http://localhost:3000/api/top-players");
+      const data = await res.json();
+      setTopPlayers(data);
+    } catch (err) {
+      console.error("Error loading top players:", err);
+    }
+  };
+
+  // add Player (checks banned last name, duplicate, etc.)
   const handleAddPlayer = async () => {
     if (!playerName.trim() || !isValid || !selectedSport) return;
+
+    const lastName = playerName.trim().split(" ").slice(-1)[0];
+    if (bannedLastNames.includes(lastName)) {
+      setErrorMsg("This player has a banned last name and cannot be added to the lineup.");
+      return;
+    }
 
     const exists =
       lineup.some(
@@ -86,19 +108,19 @@ export default function App() {
         );
       }
       setPlayerName("");
+      setErrorMsg("");
     } catch (err) {
       console.error("Error adding player:", err);
     }
   };
 
-  // submit button
+  // submit lineup
   const handleSubmit = async () => {
     if (lineup.length < 3) return;
 
     try {
       setIsSubmitting(true);
-
-      await fetch("http://localhost:3000/api/lineup", {
+      const res = await fetch("http://localhost:3000/api/lineup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -107,12 +129,25 @@ export default function App() {
         }),
       });
 
-      alert("✅ Lineup submitted successfully!");
+      const data = await res.json();
+
+      // Ako backend vrati grešku (npr. banned last names)
+      if (!res.ok) {
+        setToastMsg(data.error || "Error submitting lineup.");
+        setIsSubmitting(false);
+        setTimeout(() => setToastMsg(""), 4000);
+        return;
+      }
+
+      setToastMsg("Lineup submitted successfully!");
       setLineup([]);
+      await fetchTopPlayers();
     } catch (err) {
       console.error("Error submitting lineup:", err);
+      setToastMsg(" Failed to submit lineup.");
     } finally {
       setIsSubmitting(false);
+      setTimeout(() => setToastMsg(""), 4000);
     }
   };
 
@@ -124,6 +159,14 @@ export default function App() {
           Create and submit your custom sports lineup.
         </p>
 
+        {/* toast Message */}
+        {toastMsg && (
+          <div className="alert alert-info py-2 text-center" role="alert">
+            {toastMsg}
+          </div>
+        )}
+
+        {/* Sport Select */}
         <div className="mb-3">
           <label className="form-label fw-semibold">Select Sport</label>
           <select
@@ -140,6 +183,7 @@ export default function App() {
           </select>
         </div>
 
+        {/* Add Player */}
         <div className="mb-3">
           <label className="form-label fw-semibold">Add Player</label>
           <div className="input-group">
@@ -158,9 +202,11 @@ export default function App() {
               +
             </button>
           </div>
-          {!isValid && <small className="text-danger">{errorMsg}</small>}
+
+          {errorMsg && <small className="text-danger">{errorMsg}</small>}
         </div>
 
+        {/* Available Players dropdown*/}
         <div className="mb-3">
           <label className="form-label fw-semibold">Available Players</label>
           <select className="form-select">
@@ -170,6 +216,7 @@ export default function App() {
           </select>
         </div>
 
+        {/* Lineup */}
         <div className="mb-3">
           <label className="form-label fw-semibold">Your Lineup</label>
           <div className="d-flex flex-wrap gap-2">
@@ -181,14 +228,12 @@ export default function App() {
           </div>
         </div>
 
-        {/* Submit Button with tooltip and loader */}
+        {/* Submit Button */}
         <div className="position-relative">
           <button
             className="btn btn-secondary w-100 d-flex justify-content-center align-items-center"
             disabled={lineup.length < 3 || isSubmitting}
             onClick={handleSubmit}
-            data-bs-toggle={lineup.length < 3 ? "tooltip" : ""}
-            data-bs-placement="top"
             title={
               lineup.length < 3
                 ? "You need at least 3 players to submit a lineup."
@@ -209,6 +254,41 @@ export default function App() {
             )}
           </button>
         </div>
+
+        {/* Top Players */}
+        {topPlayers.length > 0 && (
+          <div className="mt-4">
+            <h5 className="fw-semibold text-primary">
+              <i className="bi bi-bar-chart"></i> Top Players
+            </h5>
+            <table className="table table-sm table-striped text-center">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Player</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topPlayers.map((p, idx) => {
+                  const nameLength = p.full_name.replace(/\s+/g, "").length;
+                  const isPrime = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29].includes(
+                    nameLength
+                  );
+                  return (
+                    <tr key={idx}>
+                      <td>{idx + 1}</td>
+                      <td className={isPrime ? "fw-bold text-primary" : ""}>
+                        {p.full_name}
+                      </td>
+                      <td>{p.count}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
